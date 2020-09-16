@@ -8,19 +8,26 @@ use Grimzy\LaravelMysqlSpatial\Exceptions\InvalidGeoJsonException;
 
 class MultiPoint extends PointCollection
 {
+    /**
+     * The minimum number of items required to create this collection.
+     *
+     * @var int
+     */
+    protected $minimumCollectionItems = 1;
+
     public function toWKT()
     {
         return sprintf('MULTIPOINT(%s)', (string) $this);
     }
 
-    public static function fromWkt($wkt)
+    public static function fromWkt($wkt, $srid = 0)
     {
         $wktArgument = Geometry::getWKTArgument($wkt);
 
-        return static::fromString($wktArgument);
+        return static::fromString($wktArgument, $srid);
     }
 
-    public static function fromString($wktArgument)
+    public static function fromString($wktArgument, $srid = 0)
     {
         $matches = [];
         preg_match_all('/\(\s*(\d+\s+\d+)\s*\)/', trim($wktArgument), $matches);
@@ -29,7 +36,7 @@ class MultiPoint extends PointCollection
             return Point::fromPair($pair);
         }, $matches[1]);
 
-        return new static($points);
+        return new static($points, $srid);
     }
 
     public function __toString()

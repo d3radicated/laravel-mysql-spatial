@@ -5,24 +5,22 @@ namespace Grimzy\LaravelMysqlSpatial\Types;
 use GeoJson\GeoJson;
 use GeoJson\Geometry\MultiPolygon as GeoJsonMultiPolygon;
 use Grimzy\LaravelMysqlSpatial\Exceptions\InvalidGeoJsonException;
-use InvalidArgumentException;
 
 class MultiPolygon extends GeometryCollection
 {
     /**
-     * @param Polygon[] $polygons
+     * The minimum number of items required to create this collection.
+     *
+     * @var int
      */
-    public function __construct(array $polygons)
-    {
-        $validated = array_filter($polygons, function ($value) {
-            return $value instanceof Polygon;
-        });
+    protected $minimumCollectionItems = 1;
 
-        if (count($polygons) !== count($validated)) {
-            throw new InvalidArgumentException('$polygons must be an array of Polygon');
-        }
-        parent::__construct($polygons);
-    }
+    /**
+     * The class of the items in the collection.
+     *
+     * @var string
+     */
+    protected $collectionItemType = Polygon::class;
 
     public function toWKT()
     {
@@ -36,14 +34,14 @@ class MultiPolygon extends GeometryCollection
         }, $this->items));
     }
 
-    public static function fromString($wktArgument)
+    public static function fromString($wktArgument, $srid = 0)
     {
         $parts = preg_split('/(\)\s*\)\s*,\s*\(\s*\()/', $wktArgument, -1, PREG_SPLIT_DELIM_CAPTURE);
         $polygons = static::assembleParts($parts);
 
         return new static(array_map(function ($polygonString) {
             return Polygon::fromString($polygonString);
-        }, $polygons));
+        }, $polygons), $srid);
     }
 
     /**
@@ -93,9 +91,7 @@ class MultiPolygon extends GeometryCollection
 
     public function offsetSet($offset, $value)
     {
-        if (!($value instanceof Polygon)) {
-            throw new InvalidArgumentException('$value must be an instance of Polygon');
-        }
+        $this->validateItemType($value);
 
         parent::offsetSet($offset, $value);
     }
